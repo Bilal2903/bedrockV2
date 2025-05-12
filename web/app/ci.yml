@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Build Docker image from Dockerfile
+        run: |
+          docker build -t my-wordpress-container .
+
+      - name: Start Docker container
+        run: |
+          docker run -d --name my-wordpress-container my-wordpress-container
+
+      - name: Run PHPUnit tests in Docker container
+        run: |
+          docker exec -T my-wordpress-container ./vendor/bin/phpunit
+
+      - name: Run Codeception tests in Docker container
+        run: |
+          docker exec -T my-wordpress-container ./vendor/bin/codecept run
+
+      - name: Install Playwright in Docker container
+        run: |
+          docker exec -T my-wordpress-container npx playwright install --with-deps
+
+      - name: Run Playwright tests in Docker container
+        run: |
+          docker exec -T my-wordpress-container npm run test:e2e
+
+      - name: Run Prettier in Docker container
+        run: |
+          docker exec -T my-wordpress-container npx prettier . --check
+
+      - name: Run ESLint in Docker container
+        run: |
+          docker exec -T my-wordpress-container npx eslint resources/scripts
